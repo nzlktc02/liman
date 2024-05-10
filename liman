@@ -1,0 +1,317 @@
+import tkinter as tk
+from tkinter import messagebox
+from tkinter import ttk
+import sqlite3
+
+class GezginGemiSirketi:
+    def __init__(self):
+        self.conn = sqlite3.connect('gemi_veritabani.db')
+        self.cursor = self.conn.cursor()
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS gemiler 
+                               (id INTEGER PRIMARY KEY, seri_numarasi TEXT, ad TEXT, agirlik REAL, yapim_yili INTEGER, tur TEXT)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS limanlar 
+                               (id INTEGER PRIMARY KEY, ad TEXT, ulke TEXT, nufus INTEGER, pasaport_istiyor_mu INTEGER, demirleme_ucreti REAL)''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS kaptanlar 
+                               (id INTEGER PRIMARY KEY, ad TEXT, soyad TEXT, adres TEXT, vatandaslik TEXT, dogum_tarihi TEXT, 
+                                ise_giris_tarihi TEXT, lisans TEXT, UNIQUE(ad, soyad))''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS muhendisler 
+                               (id INTEGER PRIMARY KEY, ad TEXT, soyad TEXT, adres TEXT, vatandaslik TEXT, dogum_tarihi TEXT, 
+                                ise_giris_tarihi TEXT, gorev TEXT, UNIQUE(ad, soyad))''')
+        self.cursor.execute('''CREATE TABLE IF NOT EXISTS seferler 
+                               (id INTEGER PRIMARY KEY, gemi_id INTEGER, kaptan_id INTEGER, muhendis_id INTEGER, 
+                                kalkis_tarihi TEXT, varis_tarihi TEXT, kalkis_liman_id INTEGER, FOREIGN KEY(gemi_id) REFERENCES gemiler(id), 
+                                FOREIGN KEY(kaptan_id) REFERENCES kaptanlar(id), FOREIGN KEY(muhendis_id) REFERENCES muhendisler(id), 
+                                FOREIGN KEY(kalkis_liman_id) REFERENCES limanlar(id))''')
+        self.conn.commit()
+
+    def gemi_ekle(self, seri_numarasi, ad, agirlik, yapim_yili, tur):
+        self.cursor.execute("INSERT INTO gemiler (seri_numarasi, ad, agirlik, yapim_yili, tur) VALUES (?, ?, ?, ?, ?)",
+                            (seri_numarasi, ad, agirlik, yapim_yili, tur))
+        self.conn.commit()
+
+    def liman_ekle(self, ad, ulke, nufus, pasaport_istiyor_mu, demirleme_ucreti):
+        self.cursor.execute("INSERT INTO limanlar (ad, ulke, nufus, pasaport_istiyor_mu, demirleme_ucreti) VALUES (?, ?, ?, ?, ?)",
+                            (ad, ulke, nufus, pasaport_istiyor_mu, demirleme_ucreti))
+        self.conn.commit()
+
+    def kaptan_ekle(self, ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, lisans):
+        self.cursor.execute("INSERT INTO kaptanlar (ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, lisans) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, lisans))
+        self.conn.commit()
+
+    def muhendis_ekle(self, ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, gorev):
+        self.cursor.execute("INSERT INTO muhendisler (ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, gorev) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                            (ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, gorev))
+        self.conn.commit()
+
+    def sefer_ekle(self, gemi_id, kaptan_id, muhendis_id, kalkis_tarihi, varis_tarihi, kalkis_liman_id):
+        self.cursor.execute("INSERT INTO seferler (gemi_id, kaptan_id, muhendis_id, kalkis_tarihi, varis_tarihi, kalkis_liman_id) VALUES (?, ?, ?, ?, ?, ?)",
+                            (gemi_id, kaptan_id, muhendis_id, kalkis_tarihi, varis_tarihi, kalkis_liman_id))
+        self.conn.commit()
+
+    def gemileri_listele(self):
+        self.cursor.execute("SELECT ad FROM gemiler")
+        gemiler = self.cursor.fetchall()
+        return gemiler
+
+    def limanlari_listele(self):
+        self.cursor.execute("SELECT ad FROM limanlar")
+        limanlar = self.cursor.fetchall()
+        return limanlar
+
+    def kaptanlari_listele(self):
+        self.cursor.execute("SELECT ad, soyad FROM kaptanlar")
+        kaptanlar = self.cursor.fetchall()
+        return kaptanlar
+
+    def muhendisleri_listele(self):
+        self.cursor.execute("SELECT ad, soyad FROM muhendisler")
+        muhendisler = self.cursor.fetchall()
+        return muhendisler
+
+    def __del__(self):
+        self.conn.close()
+
+class Arayuz:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Gezgin Gemi Şirketi")
+
+        self.sirket = GezginGemiSirketi()
+
+        self.main_frame = tk.Frame(root)
+        self.main_frame.pack(padx=20, pady=20)
+
+        gemi_ekle_frame = tk.LabelFrame(self.main_frame, text="Gemi Ekle")
+        gemi_ekle_frame.grid(row=0, column=0, padx=10, pady=10)
+
+        tk.Label(gemi_ekle_frame, text="Seri Numarası:").grid(row=0, column=0)
+        self.seri_entry = tk.Entry(gemi_ekle_frame)
+        self.seri_entry.grid(row=0, column=1)
+
+        tk.Label(gemi_ekle_frame, text="Gemi Adı:").grid(row=1, column=0)
+        self.ad_entry = tk.Entry(gemi_ekle_frame)
+        self.ad_entry.grid(row=1, column=1)
+
+        tk.Label(gemi_ekle_frame, text="Ağırlık:").grid(row=2, column=0)
+        self.agirlik_entry = tk.Entry(gemi_ekle_frame)
+        self.agirlik_entry.grid(row=2, column=1)
+
+        tk.Label(gemi_ekle_frame, text="Yapım Yılı:").grid(row=3, column=0)
+        self.yapim_yili_entry = tk.Entry(gemi_ekle_frame)
+        self.yapim_yili_entry.grid(row=3, column=1)
+
+        tk.Label(gemi_ekle_frame, text="Tür:").grid(row=4, column=0)
+        self.tur_combobox = ttk.Combobox(gemi_ekle_frame, values=["Yolcu", "Petrol Tankeri", "Konteyner"])
+        self.tur_combobox.grid(row=4, column=1)
+
+        tk.Button(gemi_ekle_frame, text="Ekle", command=self.gemi_ekle).grid(row=5, columnspan=2, pady=10)
+
+        liman_ekle_frame = tk.LabelFrame(self.main_frame, text="Liman Ekle")
+        liman_ekle_frame.grid(row=1, column=0, padx=10, pady=10)
+
+        tk.Label(liman_ekle_frame, text="Liman Adı:").grid(row=0, column=0)
+        self.liman_ad_entry = tk.Entry(liman_ekle_frame)
+        self.liman_ad_entry.grid(row=0, column=1)
+
+        tk.Label(liman_ekle_frame, text="Ülke:").grid(row=1, column=0)
+        self.ulke_entry = tk.Entry(liman_ekle_frame)
+        self.ulke_entry.grid(row=1, column=1)
+
+        tk.Label(liman_ekle_frame, text="Nüfus:").grid(row=2, column=0)
+        self.nufus_entry = tk.Entry(liman_ekle_frame)
+        self.nufus_entry.grid(row=2, column=1)
+
+        tk.Label(liman_ekle_frame, text="Pasaport İstiyor mu (0/1):").grid(row=3, column=0)
+        self.pasaport_istiyor_mu_entry = tk.Entry(liman_ekle_frame)
+        self.pasaport_istiyor_mu_entry.grid(row=3, column=1)
+
+        tk.Label(liman_ekle_frame, text="Demirleme Ücreti:").grid(row=4, column=0)
+        self.demirleme_ucreti_entry = tk.Entry(liman_ekle_frame)
+        self.demirleme_ucreti_entry.grid(row=4, column=1)
+
+        tk.Button(liman_ekle_frame, text="Ekle", command=self.liman_ekle).grid(row=5, columnspan=2, pady=10)
+
+        kaptan_ekle_frame = tk.LabelFrame(self.main_frame, text="Kaptan Ekle")
+        kaptan_ekle_frame.grid(row=0, column=1, padx=10, pady=10)
+
+        tk.Label(kaptan_ekle_frame, text="Ad:").grid(row=0, column=0)
+        self.kaptan_ad_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_ad_entry.grid(row=0, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="Soyad:").grid(row=1, column=0)
+        self.kaptan_soyad_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_soyad_entry.grid(row=1, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="Adres:").grid(row=2, column=0)
+        self.kaptan_adres_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_adres_entry.grid(row=2, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="Vatandaşlık:").grid(row=3, column=0)
+        self.kaptan_vatandaslik_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_vatandaslik_entry.grid(row=3, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="Doğum Tarihi (YYYY-MM-DD):").grid(row=4, column=0)
+        self.kaptan_dogum_tarihi_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_dogum_tarihi_entry.grid(row=4, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="İşe Giriş Tarihi (YYYY-MM-DD):").grid(row=5, column=0)
+        self.kaptan_ise_giris_tarihi_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_ise_giris_tarihi_entry.grid(row=5, column=1)
+
+        tk.Label(kaptan_ekle_frame, text="Lisans:").grid(row=6, column=0)
+        self.kaptan_lisans_entry = tk.Entry(kaptan_ekle_frame)
+        self.kaptan_lisans_entry.grid(row=6, column=1)
+
+        tk.Button(kaptan_ekle_frame, text="Ekle", command=self.kaptan_ekle).grid(row=7, columnspan=2, pady=10)
+
+        muhendis_ekle_frame = tk.LabelFrame(self.main_frame, text="Mühendis Ekle")
+        muhendis_ekle_frame.grid(row=1, column=1, padx=10, pady=10)
+
+        tk.Label(muhendis_ekle_frame, text="Ad:").grid(row=0, column=0)
+        self.muhendis_ad_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_ad_entry.grid(row=0, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="Soyad:").grid(row=1, column=0)
+        self.muhendis_soyad_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_soyad_entry.grid(row=1, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="Adres:").grid(row=2, column=0)
+        self.muhendis_adres_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_adres_entry.grid(row=2, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="Vatandaşlık:").grid(row=3, column=0)
+        self.muhendis_vatandaslik_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_vatandaslik_entry.grid(row=3, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="Doğum Tarihi (YYYY-MM-DD):").grid(row=4, column=0)
+        self.muhendis_dogum_tarihi_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_dogum_tarihi_entry.grid(row=4, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="İşe Giriş Tarihi (YYYY-MM-DD):").grid(row=5, column=0)
+        self.muhendis_ise_giris_tarihi_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_ise_giris_tarihi_entry.grid(row=5, column=1)
+
+        tk.Label(muhendis_ekle_frame, text="Görev:").grid(row=6, column=0)
+        self.muhendis_gorev_entry = tk.Entry(muhendis_ekle_frame)
+        self.muhendis_gorev_entry.grid(row=6, column=1)
+
+        tk.Button(muhendis_ekle_frame, text="Ekle", command=self.muhendis_ekle).grid(row=7, columnspan=2, pady=10)
+
+        gemi_listesi_frame = tk.LabelFrame(self.main_frame, text="Gemi Listesi")
+        gemi_listesi_frame.grid(row=0, column=2, padx=10, pady=10)
+
+        self.gemi_listesi = tk.Listbox(gemi_listesi_frame, width=50, height=10)
+        self.gemi_listesi.pack(padx=10, pady=10)
+
+        liman_listesi_frame = tk.LabelFrame(self.main_frame, text="Liman Listesi")
+        liman_listesi_frame.grid(row=1, column=2, padx=10, pady=10)
+
+        self.liman_listesi = tk.Listbox(liman_listesi_frame, width=50, height=10)
+        self.liman_listesi.pack(padx=10, pady=10)
+
+        kaptan_listesi_frame = tk.LabelFrame(self.main_frame, text="Kaptan Listesi")
+        kaptan_listesi_frame.grid(row=0, column=3, padx=10, pady=10)
+
+        self.kaptan_listesi = tk.Listbox(kaptan_listesi_frame, width=50, height=10)
+        self.kaptan_listesi.pack(padx=10, pady=10)
+
+        muhendis_listesi_frame = tk.LabelFrame(self.main_frame, text="Mühendis Listesi")
+        muhendis_listesi_frame.grid(row=1, column=3, padx=10, pady=10)
+
+        self.muhendis_listesi = tk.Listbox(muhendis_listesi_frame, width=50, height=10)
+        self.muhendis_listesi.pack(padx=10, pady=10)
+
+        self.gemi_listesini_guncelle()
+        self.liman_listesini_guncelle()
+        self.kaptan_listesini_guncelle()
+        self.muhendis_listesini_guncelle()
+
+    def gemi_ekle(self):
+        seri_no = self.seri_entry.get()
+        ad = self.ad_entry.get()
+        agirlik = float(self.agirlik_entry.get())
+        yapim_yili = int(self.yapim_yili_entry.get())
+        tur = self.tur_combobox.get()
+
+        try:
+            self.sirket.gemi_ekle(seri_no, ad, agirlik, yapim_yili, tur)
+            self.gemi_listesini_guncelle()
+            messagebox.showinfo("Başarılı", "Gemi başarıyla eklendi.")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Gemi eklenirken bir hata oluştu: {str(e)}")
+
+    def liman_ekle(self):
+        ad = self.liman_ad_entry.get()
+        ulke = self.ulke_entry.get()
+        nufus = int(self.nufus_entry.get())
+        pasaport_istiyor_mu = int(self.pasaport_istiyor_mu_entry.get())
+        demirleme_ucreti = float(self.demirleme_ucreti_entry.get())
+
+        try:
+            self.sirket.liman_ekle(ad, ulke, nufus, pasaport_istiyor_mu, demirleme_ucreti)
+            self.liman_listesini_guncelle()
+            messagebox.showinfo("Başarılı", "Liman başarıyla eklendi.")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Liman eklenirken bir hata oluştu: {str(e)}")
+
+    def kaptan_ekle(self):
+        ad = self.kaptan_ad_entry.get()
+        soyad = self.kaptan_soyad_entry.get()
+        adres = self.kaptan_adres_entry.get()
+        vatandaslik = self.kaptan_vatandaslik_entry.get()
+        dogum_tarihi = self.kaptan_dogum_tarihi_entry.get()
+        ise_giris_tarihi = self.kaptan_ise_giris_tarihi_entry.get()
+        lisans = self.kaptan_lisans_entry.get()
+
+        try:
+            self.sirket.kaptan_ekle(ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, lisans)
+            self.kaptan_listesini_guncelle()
+            messagebox.showinfo("Başarılı", "Kaptan başarıyla eklendi.")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Kaptan eklenirken bir hata oluştu: {str(e)}")
+
+    def muhendis_ekle(self):
+        ad = self.muhendis_ad_entry.get()
+        soyad = self.muhendis_soyad_entry.get()
+        adres = self.muhendis_adres_entry.get()
+        vatandaslik = self.muhendis_vatandaslik_entry.get()
+        dogum_tarihi = self.muhendis_dogum_tarihi_entry.get()
+        ise_giris_tarihi = self.muhendis_ise_giris_tarihi_entry.get()
+        gorev = self.muhendis_gorev_entry.get()
+
+        try:
+            self.sirket.muhendis_ekle(ad, soyad, adres, vatandaslik, dogum_tarihi, ise_giris_tarihi, gorev)
+            self.muhendis_listesini_guncelle()
+            messagebox.showinfo("Başarılı", "Mühendis başarıyla eklendi.")
+        except Exception as e:
+            messagebox.showerror("Hata", f"Mühendis eklenirken bir hata oluştu: {str(e)}")
+
+    def gemi_listesini_guncelle(self):
+        self.gemi_listesi.delete(0, tk.END)
+        gemiler = self.sirket.gemileri_listele()
+        for gemi in gemiler:
+            self.gemi_listesi.insert(tk.END, gemi[0])
+
+    def liman_listesini_guncelle(self):
+        self.liman_listesi.delete(0, tk.END)
+        limanlar = self.sirket.limanlari_listele()
+        for liman in limanlar:
+            self.liman_listesi.insert(tk.END, liman[0])
+
+    def kaptan_listesini_guncelle(self):
+        self.kaptan_listesi.delete(0, tk.END)
+        kaptanlar = self.sirket.kaptanlari_listele()
+        for kaptan in kaptanlar:
+            self.kaptan_listesi.insert(tk.END, f"{kaptan[0]} {kaptan[1]}")
+
+    def muhendis_listesini_guncelle(self):
+        self.muhendis_listesi.delete(0, tk.END)
+        muhendisler = self.sirket.muhendisleri_listele()
+        for muhendis in muhendisler:
+            self.muhendis_listesi.insert(tk.END, f"{muhendis[0]} {muhendis[1]}")
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Arayuz(root)
+    root.mainloop()
